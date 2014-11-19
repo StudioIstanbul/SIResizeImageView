@@ -46,7 +46,6 @@
 
 -(void)updateTrackingAreas {
     if (!resizeOperation) {
-        NSLog(@"update tracking areas");
         [super updateTrackingAreas];
         NSRect leftTopRect = NSMakeRect(0, self.frame.size.height - 20, 20, 20);
         NSRect rightTopRect = NSMakeRect(self.frame.size.width-20, self.frame.size.height - 20, 20, 20);
@@ -119,7 +118,6 @@
         NSTrackingArea *trackingArea;
         
         trackingArea = [event trackingArea];
-        if (!trackingArea) NSLog(@"event without tracking area");
         hitPoint = [self convertPoint:[event locationInWindow]
                              fromView:nil];
         if (NSPointInRect(hitPoint, trackingArea.rect)) {
@@ -135,7 +133,7 @@
 }
 
 - (void)mouseDown:(NSEvent *) e {
-    
+    [super mouseDown:e];
     // Convert to superview's coordinate space
     lastDragPoint = [[self superview] convertPoint:[e locationInWindow] fromView:nil];
     for (NSTrackingArea* area in [self trackingAreas]) {
@@ -147,6 +145,7 @@
 }
 
 - (void)mouseDragged:(NSEvent *)theEvent {
+    [super mouseDragged:theEvent];
     NSPoint newDragLocation = [[self superview] convertPoint:[theEvent locationInWindow] fromView:nil];
     NSPoint thisOrigin = [self frame].origin;
     thisOrigin.x += (-lastDragPoint.x + newDragLocation.x);
@@ -178,6 +177,7 @@
 }
 
 -(void)mouseUp:(NSEvent *)theEvent {
+    [super mouseUp:theEvent];
     resizeOperation = NO;
     currentArea = nil;
     [self updateTrackingAreas];
