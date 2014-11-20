@@ -12,7 +12,10 @@
     NSPoint lastDragPoint;
     NSTrackingArea* leftTop, *rightTop, *bottomLeft, *bottomRight, *currentArea;
     BOOL resizeOperation;
+    BOOL inTrackingArea;
 }
 @property (nonatomic, strong) NSImage* image;
+@property (nonatomic) NSSize minSize;
+@property (nonatomic) BOOL preserveAspect;
 
 @end
