@@ -453,22 +453,38 @@
         if (currentArea == leftTop) {
             x = self.frame.origin.x - adjustX;
             width = self.frame.size.width + adjustX;
-            height = self.frame.size.height - adjustY;
         } else if (currentArea == rightTop) {
             width = self.frame.size.width - adjustX;
-            height = self.frame.size.height - adjustY;
         } else if (currentArea == bottomLeft) {
             x = self.frame.origin.x - adjustX;
-            y = self.frame.origin.y - adjustY;
             width = self.frame.size.width + adjustX;
+        } else if (currentArea == bottomRight) {
+            width = self.frame.size.width - adjustX;
+        }
+        if (width < self.minSize.width) {
+            width = self.minSize.width;
+            x = self.frame.origin.x;
+        }
+        if (preserveAspect) {
+            double aspect = self.minSize.width / self.minSize.height;
+            height = width * aspect;
+            if (currentArea == leftTop || currentArea == rightTop) adjustY = self.frame.size.height - height; else adjustY = height - self.frame.size.height;
+        }
+        if (currentArea == leftTop) {
+            height = self.frame.size.height - adjustY;
+        } else if (currentArea == rightTop) {
+            height = self.frame.size.height - adjustY;
+        } else if (currentArea == bottomLeft) {
+            y = self.frame.origin.y - adjustY;
             height = self.frame.size.height + adjustY;
         } else if (currentArea == bottomRight) {
             y = self.frame.origin.y - adjustY;
-            width = self.frame.size.width - adjustX;
             height = self.frame.size.height + adjustY;
         }
-        if (width < self.minSize.width) width = self.minSize.width;
-        if (height < self.minSize.height) height = self.minSize.height;
+        if (height < self.minSize.height && !preserveAspect) {
+            height = self.minSize.height;
+            y = self.frame.origin.y;
+        }
         NSRect newRect = NSMakeRect(x, y, width, height);
         [self setFrame:newRect];
         resizeOperation = YES;
