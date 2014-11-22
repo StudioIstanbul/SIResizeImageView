@@ -9,7 +9,7 @@
 #import "SIResizeImageView.h"
 
 @implementation SIResizeImageView
-@synthesize image, minSize, preserveAspect;
+@synthesize image, minSize, preserveAspect, stayInSuperview;
 
 - (id)initWithFrame:(NSRect)frame
 {
@@ -18,33 +18,25 @@
         resizeOperation = NO;
         inTrackingArea = NO;
         minSize = NSMakeSize(70, 70);
+        stayInSuperview = YES;
     }
 
     return self;
 }
 
-/*-(void)setFrame:(NSRect)frame
-{
-    [super setFrame:frame];
-    dispatch_async(dispatch_get_main_queue(), ^(void) {
-        [self adjustTrackingAreas];
-    });
+-(void)setImage:(NSImage *)newImage {
+    image = newImage;
+    [self setHidden:NO];
+    [self setNeedsDisplay:YES];
 }
 
--(void)setBounds:(NSRect)frame
-{
-    [super setBounds:frame];
-    dispatch_async(dispatch_get_main_queue(), ^(void) {
-        [self adjustTrackingAreas];
-    });
+-(void)setMinSize:(NSSize)newMinSize {
+    [self setHidden:YES];
+    minSize = newMinSize;
+    double x = self.frame.origin.x;
+    double y = self.frame.origin.y;
+    self.frame = NSMakeRect(x, y, newMinSize.width, newMinSize.height);
 }
-
--(void)adjustTrackingAreas {
-    NSRect leftTopRect = NSMakeRect(0, self.frame.size.height - 20, 20, 20);
-    //NSRect leftTopRect = NSMakeRect(0, 0, 20, 20);
-    leftTop = [[NSTrackingArea alloc] initWithRect:leftTopRect options:NSTrackingMouseMoved | NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways owner:self userInfo:nil];
-    [self up]
-}*/
 
 -(void)updateTrackingAreas {
     if (!resizeOperation) {
@@ -92,7 +84,7 @@
     [shadow setShadowBlurRadius: 5];
     
     //// Frames
-    NSRect frame = NSMakeRect(self.bounds.origin.x + 5, self.bounds.origin.y + 15, self.bounds.size.width-20, self.bounds.size.height-20);
+    NSRect frame = NSMakeRect(self.bounds.origin.x + 2, self.bounds.origin.y + 7, self.bounds.size.width-9, self.bounds.size.height-9);
     
     //// Rectangle Drawing
     NSBezierPath* rectanglePath = [NSBezierPath bezierPathWithRect: NSMakeRect(NSMinX(frame), NSMinY(frame), NSWidth(frame), NSHeight(frame))];
@@ -447,7 +439,24 @@
     double adjustX = (lastDragPoint.x - newDragLocation.x);
     double adjustY = (lastDragPoint.y - newDragLocation.y);
     if (!resizeOperation) {
-        [self setFrameOrigin:thisOrigin];
+        NSRect newRect = NSMakeRect(thisOrigin.x, thisOrigin.y, self.frame.size.width, self.frame.size.height);
+        if (NSContainsRect(self.superview.visibleRect, newRect) || !stayInSuperview) {
+            [self setFrameOrigin:thisOrigin];
+        } else {
+            NSRect interRect = NSIntersectionRect(self.superview.visibleRect, newRect);
+            newRect.size = self.frame.size;
+            if (newRect.origin.x < interRect.origin.x) {
+                newRect.origin.x = interRect.origin.x;
+            } else if (newRect.origin.x + newRect.size.width > interRect.origin.x + interRect.size.width) {
+                newRect.origin.x = interRect.origin.x + interRect.size.width - newRect.size.width;
+            }
+            if (newRect.origin.y < interRect.origin.y) {
+                newRect.origin.y = interRect.origin.y;
+            } else if (newRect.origin.y + newRect.size.height > interRect.origin.y + interRect.size.height) {
+                newRect.origin.y = interRect.origin.y + interRect.size.height - newRect.size.height;
+            }
+            [self setFrame:newRect];
+        }
     } else {
         double x = self.frame.origin.x, y = self.frame.origin.y, width = self.frame.size.width, height = self.frame.size.height;
         if (currentArea == leftTop) {
@@ -465,8 +474,14 @@
             width = self.minSize.width;
             x = self.frame.origin.x;
         }
+        if (stayInSuperview && x < self.superview.visibleRect.origin.x) {
+            width -= self.superview.visibleRect.origin.x - x;
+            x = self.superview.visibleRect.origin.x;
+        } else if (stayInSuperview && x + width > self.superview.visibleRect.origin.x + self.superview.visibleRect.size.width) {
+            width = self.superview.visibleRect.size.width - x;
+        }
+        double aspect =  self.minSize.height / self.minSize.width;
         if (preserveAspect) {
-            double aspect = self.minSize.width / self.minSize.height;
             height = width * aspect;
             if (currentArea == leftTop || currentArea == rightTop) adjustY = self.frame.size.height - height; else adjustY = height - self.frame.size.height;
         }
@@ -484,6 +499,22 @@
         if (height < self.minSize.height && !preserveAspect) {
             height = self.minSize.height;
             y = self.frame.origin.y;
+        }
+        if (stayInSuperview && y < self.superview.visibleRect.origin.y) {
+            height -= self.superview.visibleRect.origin.y - y;
+            y = self.superview.visibleRect.origin.y;
+            if (preserveAspect) {
+                double oldWidth = width;
+                width = height * (1/aspect);
+                if (x != self.frame.origin.x) x += oldWidth - width;
+            }
+        } else if (stayInSuperview && y + height > self.superview.visibleRect.origin.y + self.superview.visibleRect.size.height) {
+            height = self.frame.size.height;
+            if (preserveAspect) {
+                double oldWidth = width;
+                width = height * (1/aspect);
+                if (x != self.frame.origin.x) x += oldWidth - width;
+            }
         }
         NSRect newRect = NSMakeRect(x, y, width, height);
         [self setFrame:newRect];

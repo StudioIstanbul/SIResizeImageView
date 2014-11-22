@@ -17,5 +17,6 @@
 @property (nonatomic, strong) NSImage* image;
 @property (nonatomic) NSSize minSize;
 @property (nonatomic) BOOL preserveAspect;
+@property (nonatomic) BOOL stayInSuperview;
 
 @end
